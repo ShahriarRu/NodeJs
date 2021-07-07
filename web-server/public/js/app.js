@@ -14,18 +14,16 @@ weatherForm.addEventListener("submit", (e) => {
   search.value = "";
   msg1.textContent = "loading...";
   msg2.textContent = "";
-  fetch("http://localhost:3000/weather?address=" + location).then(
-    (response) => {
-      response.json().then((data) => {
-        if (data.error) {
-          msg1.textContent = data.error;
-        } else {
-          msg1.textContent = "Location: " + data.location;
-          msg2.textContent =
-            "Temperature: " + data.forecast.temperature + " degree Celcious";
-          //   console.log(data.forecast.temperature);
-        }
-      });
-    }
-  );
+  fetch("/weather?address=" + location).then((response) => {
+    response.json().then((data) => {
+      if (data.error) {
+        msg1.textContent = data.error;
+      } else {
+        msg1.textContent = "Location: " + data.location;
+        msg2.textContent =
+          "Temperature: " + data.forecast.temperature + " degree Celcious";
+        //   console.log(data.forecast.temperature);
+      }
+    });
+  });
 });
