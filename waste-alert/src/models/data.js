@@ -2,25 +2,28 @@ const mongoose = require("mongoose");
 
 const dataSchema = new mongoose.Schema(
   {
+    wasteType: {
+      type: String,
+    },
+
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        required: true,
+      lat: {
+        type: Number,
       },
-      coordinates: {
-        type: [Number],
-        required: true,
+      long: {
+        type: Number,
       },
+    },
+
+    image: {
+      type: String,
+      required: true,
     },
 
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
-    },
-    avatar: {
-      type: Buffer,
     },
   },
   {

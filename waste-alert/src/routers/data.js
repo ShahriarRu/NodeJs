@@ -3,20 +3,60 @@ const Data = require("../models/data");
 const auth = require("../middleware/auth");
 const router = new express.Router();
 const multer = require("multer");
+const fs = require("fs");
 
-router.post("/datas", auth, async (req, res) => {
-  const data = new Data({
-    ...req.body,
-    owner: req.user._id,
-  });
+const FILE_TYPE_MAP = {
+  "image/png": "png",
+  "image/jpeg": "jpeg",
+  "image/jpg": "jpg",
+};
 
-  try {
-    await data.save();
-    res.status(201).send(data);
-  } catch (e) {
-    res.status(400).send(e);
-  }
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const isValid = FILE_TYPE_MAP[file.mimetype];
+    let uploadError = new Error("invalid image type");
+
+    if (isValid) {
+      uploadError = null;
+    }
+    fs.mkdirSync("./uploads", { recursive: true });
+    cb(uploadError, "./uploads");
+  },
+  filename: function (req, file, cb) {
+    const fileName = file.originalname.split(" ").join("-");
+    const extension = FILE_TYPE_MAP[file.mimetype];
+    cb(null, `${fileName}-${Date.now()}.${extension}`);
+  },
 });
+
+const uploadOptions = multer({ storage: storage });
+
+router.post(
+  "/datas",
+  auth,
+  uploadOptions.single("image"),
+  async (req, res, next) => {
+    const file = req.file;
+    if (!file) return res.status(400).send("No image in the request");
+
+    const fileName = file.filename;
+    const basePath = `${req.protocol}://${req.get("host")}/uploads/`;
+    const newData = JSON.parse(req.body.data);
+    const data = new Data({
+      wasteType: newData.wasteType,
+      location: newData.location,
+      image: `${basePath}${fileName}`,
+      owner: req.user._id,
+    });
+
+    try {
+      await data.save();
+      res.status(201).send(data);
+    } catch (e) {
+      res.send(e);
+    }
+  }
+);
 
 router.get("/datas", auth, async (req, res) => {
   try {
@@ -45,7 +85,7 @@ router.get("/datas/:id", auth, async (req, res) => {
 
 router.patch("/datas/:id", auth, async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = ["location"];
+  const allowedUpdates = ["location", "wasteType"];
   const isValidOperation = updates.every((update) =>
     allowedUpdates.includes(update)
   );
@@ -89,47 +129,4 @@ router.delete("/datas/:id", auth, async (req, res) => {
   }
 });
 
-const upload = multer({
-  limits: {
-    fileSize: 1000000,
-  },
-  fileFilter(req, file, cb) {
-    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-      return cb(new Error("Please upload an image"));
-    }
-
-    cb(undefined, true);
-  },
-});
-
-router.post(
-  "/datas/avatar",
-  auth,
-  upload.single("avatar"),
-  async (req, res) => {
-    // const buffer = await sharp(req.file.buffer).png().toBuffer();
-    // req.user.avatar = buffer;
-    const data = await Data.findOne({ owner: req.user._id });
-    // console.log(req)
-    data.avatar = req.file.buffer;
-    await data.save();
-    res.send(data);
-  },
-  (error, req, res, next) => {
-    res.status(400).send({ error: error.message });
-  }
-);
-
-router.get("/datas/:id/avatar", async (req, res) => {
-  try {
-    const data = await Data.findById(req.params.id);
-    if (!data || !data.avatar) {
-      throw new Error();
-    }
-    res.set("Content-Type", "image/png");
-    res.send(data.avatar);
-  } catch (e) {
-    res.status(404).send();
-  }
-});
 module.exports = router;
