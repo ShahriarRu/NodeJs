@@ -43,7 +43,6 @@ router.post(
 
     const fileName = file.filename;
     const basePath = `${req.protocol}://${req.get("host")}/uploads/`;
-    console.log(req.body.data);
     const newData = JSON.parse(req.body.data);
     const data = new Data({
       wasteType: newData.wasteType,
