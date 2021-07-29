@@ -4,6 +4,7 @@ const auth = require("../middleware/auth");
 const router = new express.Router();
 const multer = require("multer");
 const fs = require("fs");
+const cors = require("cors");
 
 const FILE_TYPE_MAP = {
   "image/png": "png",
@@ -34,6 +35,7 @@ const uploadOptions = multer({ storage: storage });
 router.post(
   "/datas",
   auth,
+  cors(),
   uploadOptions.single("image"),
   async (req, res, next) => {
     const file = req.file;
@@ -41,6 +43,7 @@ router.post(
 
     const fileName = file.filename;
     const basePath = `${req.protocol}://${req.get("host")}/uploads/`;
+    console.log(req.body.data);
     const newData = JSON.parse(req.body.data);
     const data = new Data({
       wasteType: newData.wasteType,
@@ -53,7 +56,7 @@ router.post(
       await data.save();
       res.status(201).send(data);
     } catch (e) {
-      res.send(e);
+      res.send({ e, error: "something is wrong" });
     }
   }
 );
